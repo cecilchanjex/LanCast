@@ -43,32 +43,41 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y python3-dev zip unzip openjdk-11-jdk zlib1g-dev \
-            build-essential autoconf automake libtool pkg-config git wget curl default-jdk
+            build-essential autoconf automake libtool pkg-config git wget curl \
+            default-jdk unzip
 
-      # --- Install Android SDK Command-line Tools ---
-      - name: Install Android SDK command-line tools
+      # --- Install Android SDK command-line tools ---
+      - name: Install Android SDK Command-line Tools
         run: |
           mkdir -p $HOME/android-sdk/cmdline-tools
+          cd $HOME/android-sdk/cmdline-tools
           wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
-          unzip cmdline-tools.zip -d $HOME/android-sdk/cmdline-tools
-          mv $HOME/android-sdk/cmdline-tools/cmdline-tools $HOME/android-sdk/cmdline-tools/latest
+          unzip -q cmdline-tools.zip
+          mv cmdline-tools latest
           export ANDROID_SDK_ROOT=$HOME/android-sdk
           export ANDROID_HOME=$HOME/android-sdk
           export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH
           yes | sdkmanager --licenses
           sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
 
-      # --- Fix build-tools path for Buildozer ---
-      - name: Fix build-tools path for Buildozer
+      # --- Set Buildozer SDK and NDK paths ---
+      - name: Set Buildozer SDK/NDK paths
         run: |
-          mkdir -p ~/.buildozer/android/platform/android-sdk/build-tools
-          cp -r $HOME/android-sdk/build-tools/33.0.2 ~/.buildozer/android/platform/android-sdk/build-tools/
+          sed -i '/^android.sdk_path/d' buildozer.spec || true
+          sed -i '/^android.ndk_path/d' buildozer.spec || true
+          echo "[global]" >> buildozer.spec
+          echo "android.sdk_path = $HOME/android-sdk" >> buildozer.spec
+          echo "android.ndk_path = $HOME/android-sdk/ndk-bundle" >> buildozer.spec
+
+          export ANDROID_HOME=$HOME/android-sdk
+          export ANDROID_SDK_ROOT=$HOME/android-sdk
+          export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH
 
       # --- Build APK ---
       - name: Build APK
         run: |
-          export ANDROID_SDK_ROOT=$HOME/android-sdk
           export ANDROID_HOME=$HOME/android-sdk
+          export ANDROID_SDK_ROOT=$HOME/android-sdk
           export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH
           buildozer android debug
           ls bin/
