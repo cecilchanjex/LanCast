@@ -1,25 +1,26 @@
-name: Build Android APK
+[app]
+# --- App Info ---
+title = LAN Cast Receiver Pro
+package.name = lancastreceiver
+package.domain = org.lancast
+source.dir = .
+source.include_exts = py,png,jpg,kv,atlas
+version = 0.1
+orientation = portrait
+fullscreen = 1
+requirements = python3,kivy,opencv
+android.permissions = INTERNET
 
-on:
-  workflow_dispatch:
+# --- Android Specific ---
+android.archs = arm64-v8a, armeabi-v7a
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+# --- iOS (optional, keep defaults) ---
+ios.kivy_ios_url = https://github.com/kivy/kivy-ios
+ios.kivy_ios_branch = master
+ios.ios_deploy_url = https://github.com/phonegap/ios-deploy
+ios.ios_deploy_branch = 1.10.0
+ios.codesign.allowed = false
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install Cython
-        run: pip install cython
-
-      - name: Install dependencies
-        run: pip install buildozer kivy opencv-python
-
-      - name: Build APK
-        run: buildozer android debug
+[buildozer]
+log_level = 2
+warn_on_root = 1
