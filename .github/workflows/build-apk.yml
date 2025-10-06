@@ -54,7 +54,7 @@ jobs:
 
       # --- Upload APK as artifact ---
       - name: Upload APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: LANCastReceiver-APK
           path: bin/*.apk
