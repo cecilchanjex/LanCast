@@ -30,7 +30,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      # --- Install dependencies ---
+      # --- Install Python dependencies ---
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -44,7 +44,20 @@ jobs:
           sudo apt update
           sudo apt install -y python3-dev zip unzip openjdk-11-jdk zlib1g-dev \
             build-essential autoconf automake libtool pkg-config git wget curl \
-            default-jdk
+            default-jdk unzip
+
+      # --- Install Android SDK + build-tools ---
+      - name: Install Android SDK and build-tools
+        run: |
+          mkdir -p $HOME/android-sdk/cmdline-tools
+          cd $HOME/android-sdk/cmdline-tools
+          wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
+          unzip cmdline-tools.zip
+          mv cmdline-tools latest
+          export ANDROID_HOME=$HOME/android-sdk
+          export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
+          yes | sdkmanager --licenses
+          sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
 
       # --- Build APK ---
       - name: Build APK
