@@ -10,12 +10,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
+      ANDROID_HOME: ${{ github.workspace }}/android-sdk
+      PATH: ${{ github.workspace }}/android-sdk/cmdline-tools/latest/bin:${{ github.workspace }}/android-sdk/platform-tools:$PATH
+
     steps:
       # --- Checkout repo ---
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # --- Setup Python 3.10 ---
+      # --- Setup Python ---
       - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
@@ -31,7 +36,7 @@ jobs:
             ${{ runner.os }}-pip-
 
       # --- Install Python dependencies ---
-      - name: Install Python dependencies
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install cython
@@ -39,42 +44,30 @@ jobs:
           pip install -r requirements.txt || true
 
       # --- Install system dependencies ---
-      - name: Install system dependencies
+      - name: Install system packages
         run: |
           sudo apt update
           sudo apt install -y python3-dev zip unzip openjdk-11-jdk zlib1g-dev \
-            build-essential autoconf automake libtool pkg-config git wget curl default-jdk
+            build-essential autoconf automake libtool pkg-config git wget curl \
+            default-jdk
 
-      # --- Install Android SDK Command-line Tools ---
-      - name: Install Android SDK Command-line Tools
+      # --- Install Android SDK command-line tools ---
+      - name: Install Android SDK command-line tools
         run: |
-          mkdir -p $HOME/android-sdk/cmdline-tools
-          cd $HOME/android-sdk/cmdline-tools
+          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
           wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
-          unzip -q cmdline-tools.zip
-          mv cmdline-tools latest
+          unzip -q cmdline-tools.zip -d $ANDROID_SDK_ROOT/cmdline-tools
+          mv $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools $ANDROID_SDK_ROOT/cmdline-tools/latest
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses
+          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk-bundle"
 
-          export ANDROID_SDK_ROOT=$HOME/android-sdk
-          export ANDROID_HOME=$HOME/android-sdk
-          export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH
-
-          # Accept all SDK licenses non-interactively
-          yes | sdkmanager --licenses
-
-          # Install required SDK packages
-          sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
-
-      # --- Configure Buildozer SDK paths ---
-      - name: Set Buildozer SDK paths
+      # --- Fix Buildozer SDK paths ---
+      - name: Set Buildozer SDK/NDK paths
         run: |
           sed -i '/^android.sdk_path/d' buildozer.spec || true
           sed -i '/^android.ndk_path/d' buildozer.spec || true
-          echo "android.sdk_path = $HOME/android-sdk" >> buildozer.spec
-          echo "android.ndk_path = $HOME/android-sdk/ndk-bundle" >> buildozer.spec
-
-          export ANDROID_SDK_ROOT=$HOME/android-sdk
-          export ANDROID_HOME=$HOME/android-sdk
-          export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH
+          echo "android.sdk_path = $ANDROID_SDK_ROOT" >> buildozer.spec
+          echo "android.ndk_path = $ANDROID_SDK_ROOT/ndk-bundle" >> buildozer.spec
 
       # --- Build APK ---
       - name: Build APK
