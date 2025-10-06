@@ -2,7 +2,8 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -10,22 +11,50 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+      # --- Checkout repo ---
+      - name: Checkout code
+        uses: actions/checkout@v4
 
+      # --- Setup Python ---
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      # --- Cache pip packages ---
+      - name: Cache pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      # --- Install dependencies ---
       - name: Install dependencies
         run: |
-          sudo apt update
-          sudo apt install -y python3-pip openjdk-17-jdk ffmpeg unzip zip python3-dev git
-          pip3 install --upgrade pip
-          pip3 install buildozer
+          python -m pip install --upgrade pip
+          pip install cython
+          pip install buildozer==1.5.0 kivy==2.2.1
+          pip install -r requirements.txt || true
 
+      # --- Install system packages for Buildozer/Android ---
+      - name: Install system dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y python3-dev zip unzip openjdk-11-jdk zlib1g-dev \
+            build-essential autoconf automake libtool pkg-config git wget curl \
+            default-jdk
+
+      # --- Build APK ---
       - name: Build APK
         run: |
           buildozer android debug
+          ls bin/
 
+      # --- Upload APK as artifact ---
       - name: Upload APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
-          name: LanCast-Receiver-APK
+          name: LANCastReceiver-APK
           path: bin/*.apk
