@@ -59,9 +59,17 @@ jobs:
           yes | sdkmanager --licenses
           sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
 
+      # --- Fix build-tools path for Buildozer ---
+      - name: Fix build-tools path for Buildozer
+        run: |
+          mkdir -p ~/.buildozer/android/platform/android-sdk/build-tools
+          cp -r $HOME/android-sdk/build-tools/33.0.2 ~/.buildozer/android/platform/android-sdk/build-tools/
+
       # --- Build APK ---
       - name: Build APK
         run: |
+          export ANDROID_HOME=$HOME/android-sdk
+          export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
           buildozer android debug
           ls bin/
 
