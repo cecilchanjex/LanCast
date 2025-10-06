@@ -11,14 +11,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # --- Install essential system tools (tar, gzip, etc.) ---
+      # --- Install essential tools ---
       - name: Install essential tools
         run: |
           sudo apt update
           sudo apt install -y tar gzip unzip wget curl python3-dev zip build-essential \
             autoconf automake libtool pkg-config git default-jdk zlib1g-dev
 
-      # --- Checkout repository ---
+      # --- Checkout repo ---
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -55,10 +55,17 @@ jobs:
           export ANDROID_SDK_ROOT=$HOME/android-sdk
           export ANDROID_HOME=$HOME/android-sdk
           export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH
-          yes | sdkmanager --licenses
+
+          # Accept licenses non-interactively
+          mkdir -p $ANDROID_HOME/licenses
+          echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > $ANDROID_HOME/licenses/android-sdk-license
+          echo "84831b9409646a918e30573bab4c9c91346d8abd" >> $ANDROID_HOME/licenses/android-sdk-license
+          echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> $ANDROID_HOME/licenses/android-sdk-license
+
+          # Install required SDK packages
           sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
 
-      # --- Ensure Buildozer uses correct SDK/NDK paths ---
+      # --- Set Buildozer SDK/NDK path ---
       - name: Set Buildozer SDK/NDK path
         run: |
           sed -i '/^android.sdk_path/d' buildozer.spec || true
@@ -66,7 +73,7 @@ jobs:
           echo "android.sdk_path = $HOME/android-sdk" >> buildozer.spec
           echo "android.ndk_path = $HOME/android-sdk/ndk-bundle" >> buildozer.spec
 
-      # --- Build the APK ---
+      # --- Build APK ---
       - name: Build APK
         run: |
           export ANDROID_SDK_ROOT=$HOME/android-sdk
